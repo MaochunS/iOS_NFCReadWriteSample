@@ -8,11 +8,11 @@
 import Foundation
 import CoreNFC
 
-class NFCOperationsHandler: NSObject,ObservableObject, NFCNDEFReaderSessionDelegate{
+class NFCOperationsHandler: NSObject, NFCNDEFReaderSessionDelegate{
     
     var nfcSession: NFCNDEFReaderSession?
     var urlToWrite = ""
-    var textToWrite = ""
+    var dataToWrite: Data? = nil
     var textRead = ""
     
     func readFromNFC() -> String?{
@@ -29,7 +29,7 @@ class NFCOperationsHandler: NSObject,ObservableObject, NFCNDEFReaderSessionDeleg
     }
     
     func writeToNFC(url:String, text:String){
-        self.textToWrite = text
+        self.dataToWrite = text.data(using: .utf8)
         self.urlToWrite = url
 
         nfcSession = NFCNDEFReaderSession(delegate: self, queue: nil, invalidateAfterFirstRead: false)
@@ -42,10 +42,6 @@ class NFCOperationsHandler: NSObject,ObservableObject, NFCNDEFReaderSessionDeleg
 
     func readerSession(_ session: NFCNDEFReaderSession, didInvalidateWithError error: Error) {
         print(error.localizedDescription)
-    }
-    
-    func readerSessionDidBecomeActive(_ session: NFCNDEFReaderSession) {
-        
     }
     
     func readerSession(_ session: NFCNDEFReaderSession, didDetectNDEFs messages: [NFCNDEFMessage]) {
@@ -116,7 +112,7 @@ class NFCOperationsHandler: NSObject,ObservableObject, NFCNDEFReaderSessionDeleg
                     return
                 }
                 
-                if self.textToWrite.count > 0{
+                if let dataWrite = self.dataToWrite{
                     switch ndefStatus {
                     case .notSupported:
                         session.alertMessage = "Tag is not NDEF compliant."
@@ -125,19 +121,19 @@ class NFCOperationsHandler: NSObject,ObservableObject, NFCNDEFReaderSessionDeleg
                         session.alertMessage = "Tag is read only."
                         session.invalidate()
                     case .readWrite:
-                        let textPayload = NFCNDEFPayload.wellKnownTypeTextPayload(
-                                                string: self.textToWrite,
-                                                locale: Locale.init(identifier: "en")
 
-                                            )!
-                                            
                         let uriPayloadFromURL = NFCNDEFPayload.wellKnownTypeURIPayload(
                             url: URL(string: self.urlToWrite)!
                         )!
                         
-                        let messge = NFCNDEFMessage.init(
-                                                records: [uriPayloadFromURL, textPayload]
-                                            )
+                        let textPayload = NFCNDEFPayload.init(
+                                                           format: .nfcWellKnown,
+                                                           type: "T".data(using: .utf8)!,
+                                                           identifier: Data(),
+                                                           payload:dataWrite)
+                        
+                        let messge = NFCNDEFMessage.init(records: [textPayload, uriPayloadFromURL])
+                        
                         tag.writeNDEF(messge, completionHandler: { (error: Error?) in
                             if nil != error {
                                 session.alertMessage = "Write NDEF message fail: \(error!)"
@@ -146,7 +142,7 @@ class NFCOperationsHandler: NSObject,ObservableObject, NFCNDEFReaderSessionDeleg
                             }
                             session.invalidate()
                         })
-                        self.textToWrite = ""
+                        self.dataToWrite = nil
                         
                     @unknown default:
                         session.alertMessage = "Unknown NDEF tag status."
@@ -179,7 +175,6 @@ class NFCOperationsHandler: NSObject,ObservableObject, NFCNDEFReaderSessionDeleg
                                         }
                                         
                                         self.textRead += "Type: \(type)  Data: \(string)\n\n"
-                                        
                                         
                                     }
                                     print(self.textRead)

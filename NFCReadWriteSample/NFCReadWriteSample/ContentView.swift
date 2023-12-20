@@ -10,7 +10,7 @@ import SwiftUI
 struct ContentView: View {
     var body: some View {
    
-        var nfcHandler = NFCOperationsHandler()
+        let nfcHandler = NFCOperationsHandler()
         VStack {
             Button(action: {
                 let str = nfcHandler.readFromNFC()
@@ -25,7 +25,7 @@ struct ContentView: View {
             .frame(width: 300, height: 50)
             
             Button(action: {
-                nfcHandler.writeToNFC(url: "www.google.com", text: "Test test")
+                nfcHandler.writeToNFC(url: "www.google.com", text: "Maochun Test test")
                 print("write done!")
             }) {
                 Text("Write NFC")

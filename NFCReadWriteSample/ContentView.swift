@@ -14,7 +14,7 @@ struct ContentView: View {
         VStack {
             Button(action: {
                 let str = nfcHandler.readFromNFC()
-                print(str ?? "")
+                print("Read done \(str ?? "failed")")
             }) {
                 Text("Read NFC")
                     .foregroundColor(.white)
@@ -25,8 +25,8 @@ struct ContentView: View {
             .frame(width: 300, height: 50)
             
             Button(action: {
-                nfcHandler.writeToNFC(url: "www.google.com", text: "Maochun Test test")
-                print("write done!")
+                let ret = nfcHandler.writeToNFC(url: "www.google.com", text: "Maochun Test test")
+                print("write done! \(ret)")
             }) {
                 Text("Write NFC")
                     .foregroundColor(.white)

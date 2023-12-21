@@ -13,7 +13,10 @@ class NFCOperationsHandler: NSObject, NFCNDEFReaderSessionDelegate{
     var nfcSession: NFCNDEFReaderSession?
     var urlToWrite = ""
     var dataToWrite: Data? = nil
-    var textRead = ""
+    var textRead: String? = nil
+    
+    let taskDG = DispatchGroup()
+    var operationDone = false
     
     func readFromNFC() -> String?{
         guard NFCNDEFReaderSession.readingAvailable else {
@@ -21,27 +24,80 @@ class NFCOperationsHandler: NSObject, NFCNDEFReaderSessionDelegate{
             return nil
         }
 
+        self.operationDone = false
+        self.textRead = nil
         nfcSession = NFCNDEFReaderSession(delegate: self, queue: nil, invalidateAfterFirstRead: false)
-        nfcSession?.alertMessage = "Hold your iPhone near the NFC card."
+        nfcSession?.alertMessage = "Hold your iPhone near the NFC tag."
         nfcSession?.begin()
         
-        return ""
+        taskDG.enter()
+        DispatchQueue.global().async {
+            while true{
+                if self.textRead != nil{
+                    break
+                }
+                
+                if self.operationDone{
+                    break
+                }
+                    
+                usleep(100000)
+                
+            }
+           
+            self.taskDG.leave()
+            
+        }
+        taskDG.wait()
+        
+        return textRead
     }
     
-    func writeToNFC(url:String, text:String){
-        self.dataToWrite = text.data(using: .utf8)
+    func writeToNFC(url:String, text:String) -> Bool{
+        
+        if let d = text.data(using: .utf8){
+            return self.writeToNFC(url: url, data:d)
+        }
+        return false
+    }
+    
+    func writeToNFC(url:String, data:Data) -> Bool{
+        self.dataToWrite = data
         self.urlToWrite = url
 
+        self.operationDone = false
         nfcSession = NFCNDEFReaderSession(delegate: self, queue: nil, invalidateAfterFirstRead: false)
-        nfcSession?.alertMessage = "Hold your iPhone near the NFC card."
+        nfcSession?.alertMessage = "Hold your iPhone near the NFC tag."
         nfcSession?.begin()
         
-    
+        taskDG.enter()
+        DispatchQueue.global().async {
+            while true{
+                if self.dataToWrite == nil{
+                    break
+                }
+                    
+                if self.operationDone{
+                    break
+                }
+                usleep(100000)
+                
+            }
+           
+            self.taskDG.leave()
+            
+        }
+        taskDG.wait()
+        
+        let ret = self.dataToWrite == nil
+        self.dataToWrite = nil
+        return ret
     }
     
 
     func readerSession(_ session: NFCNDEFReaderSession, didInvalidateWithError error: Error) {
         print(error.localizedDescription)
+        self.operationDone = true
     }
     
     func readerSession(_ session: NFCNDEFReaderSession, didDetectNDEFs messages: [NFCNDEFMessage]) {
@@ -139,10 +195,11 @@ class NFCOperationsHandler: NSObject, NFCNDEFReaderSessionDelegate{
                                 session.alertMessage = "Write NDEF message fail: \(error!)"
                             } else {
                                 session.alertMessage = "Write NDEF message successful."
+                                self.dataToWrite = nil
                             }
                             session.invalidate()
                         })
-                        self.dataToWrite = nil
+                        
                         
                     @unknown default:
                         session.alertMessage = "Unknown NDEF tag status."
@@ -161,23 +218,24 @@ class NFCOperationsHandler: NSObject, NFCNDEFReaderSessionDelegate{
                                     if let string = String(data: record.payload, encoding: .utf8) {
                                         print(string)
                                         
-                                        var type = "Unknown"
+//                                        var type = "Unknown"
                                         if let typeStr = String(data: record.type, encoding: .utf8){
                                             print("Type: \(typeStr)")
                                             
                                             if typeStr == "U"{
-                                                type = "URI"
+//                                                type = "URI"
                                             }else if typeStr == "T"{
-                                                type = "Text"
+//                                                type = "Text"
+                                                self.textRead = string
                                             }else if typeStr == "Sp"{
-                                                type = "Smart Poster"
+//                                                type = "Smart Poster"
                                             }
                                         }
                                         
-                                        self.textRead += "Type: \(type)  Data: \(string)\n\n"
+//                                        self.textRead += "Type: \(type)  Data: \(string)\n\n"
                                         
                                     }
-                                    print(self.textRead)
+                                    print(self.textRead ?? "")
                                     print("Type name format: \(record.typeNameFormat)")
                                     print("Payload: \(record.payload.count)")
                                     

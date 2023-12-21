@@ -8,29 +8,38 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State var showAlert = false
+    @State var textToWrite = ""
+    @FocusState var inputIsFocused:Bool
+    
+    @State var readText = ""
+    @State var nfcHandler = NFCOperationsHandler()
+    
     var body: some View {
-        @State var showAlert = false
-        @State var textToWrite = ""
         
-        var readText = ""
-        let nfcHandler = NFCOperationsHandler()
         VStack {
             Button(action: {
                 readText = nfcHandler.readFromNFC() ?? "Failed to read from NFC tag!"
-                showAlert = true
+
                 print("Read done \(readText)")
+                showAlert = true
+                
             }) {
                 Text("Read NFC")
                     .foregroundColor(.white)
                     .padding()
             }
+            .alert(isPresented: $showAlert) {
+                Alert(
+                    title: Text("Read from NFC tag:"),
+                    message: Text(readText)
+                )
+            }
             .frame(width: UIScreen.main.bounds.width - 32, height: 60, alignment: .center)
             .background(Color.blue)
             .cornerRadius(30)
             .padding()
-            .alert(textToWrite, isPresented: $showAlert) {
-                Button("OK", role: .cancel) { }
-            }
+            
             
             TextField("Enter NFC tag text", text: $textToWrite)
                 .frame(width: UIScreen.main.bounds.width - 32, height: 300, alignment: .center)
@@ -38,9 +47,10 @@ struct ContentView: View {
                 .overlay {
                     textFieldBorder
                 }
-            
+                .focused($inputIsFocused)
             
             Button(action: {
+                inputIsFocused = false
                 let ret = nfcHandler.writeToNFC(url: "www.google.com", text: textToWrite)
                 print("write done! \(ret)")
             }) {

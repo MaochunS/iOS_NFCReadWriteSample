@@ -8,7 +8,7 @@
 import Foundation
 import CoreNFC
 
-class NFCOperationsHandler: NSObject, NFCNDEFReaderSessionDelegate{
+class NFCOperationsHandler: NSObject{
     
     var nfcSession: NFCNDEFReaderSession?
     var urlToWrite = ""
@@ -23,7 +23,7 @@ class NFCOperationsHandler: NSObject, NFCNDEFReaderSessionDelegate{
             // NFC is not supported on this device
             return nil
         }
-
+        
         self.operationDone = false
         self.textRead = nil
         nfcSession = NFCNDEFReaderSession(delegate: self, queue: nil, invalidateAfterFirstRead: false)
@@ -40,11 +40,11 @@ class NFCOperationsHandler: NSObject, NFCNDEFReaderSessionDelegate{
                 if self.operationDone{
                     break
                 }
-                    
+                
                 usleep(100000)
                 
             }
-           
+            
             self.taskDG.leave()
             
         }
@@ -64,7 +64,7 @@ class NFCOperationsHandler: NSObject, NFCNDEFReaderSessionDelegate{
     func writeToNFC(url:String, data:Data) -> Bool{
         self.dataToWrite = data
         self.urlToWrite = url
-
+        
         self.operationDone = false
         nfcSession = NFCNDEFReaderSession(delegate: self, queue: nil, invalidateAfterFirstRead: false)
         nfcSession?.alertMessage = "Hold your iPhone near the NFC tag."
@@ -76,14 +76,14 @@ class NFCOperationsHandler: NSObject, NFCNDEFReaderSessionDelegate{
                 if self.dataToWrite == nil{
                     break
                 }
-                    
+                
                 if self.operationDone{
                     break
                 }
                 usleep(100000)
                 
             }
-           
+            
             self.taskDG.leave()
             
         }
@@ -93,7 +93,9 @@ class NFCOperationsHandler: NSObject, NFCNDEFReaderSessionDelegate{
         self.dataToWrite = nil
         return ret
     }
+}
     
+extension NFCOperationsHandler: NFCNDEFReaderSessionDelegate{
 
     func readerSession(_ session: NFCNDEFReaderSession, didInvalidateWithError error: Error) {
         print(error.localizedDescription)
@@ -101,27 +103,28 @@ class NFCOperationsHandler: NSObject, NFCNDEFReaderSessionDelegate{
     }
     
     func readerSession(_ session: NFCNDEFReaderSession, didDetectNDEFs messages: [NFCNDEFMessage]) {
-        var nfcString = ""
+//        var nfcString = ""
         for message in messages {
             
             for record in message.records {
                 if let string = String(data: record.payload, encoding: .utf8) {
                     print(string)
                     
-                    var type = "Unknown"
+//                    var type = "Unknown"
                     if let typeStr = String(data: record.type, encoding: .utf8){
                         print("Type: \(typeStr)")
                         
                         if typeStr == "U"{
-                            type = "URI"
+//                            type = "URI"
                         }else if typeStr == "T"{
-                            type = "Text"
+//                            type = "Text"
+                            self.textRead = string
                         }else if typeStr == "Sp"{
-                            type = "Smart Poster"
+//                            type = "Smart Poster"
                         }
                     }
                     
-                    nfcString += "Type: \(type)  Data: \(string)\n\n"
+//                    nfcString += "Type: \(type)  Data: \(string)\n\n"
                     
                 }
 

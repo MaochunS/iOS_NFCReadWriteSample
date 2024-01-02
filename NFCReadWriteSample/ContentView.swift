@@ -35,14 +35,15 @@ struct ContentView: View {
                     message: Text(readText)
                 )
             }
-            .frame(width: UIScreen.main.bounds.width - 32, height: 60, alignment: .center)
+            .frame(minWidth: 0, maxWidth: .infinity)
             .background(Color.blue)
             .cornerRadius(30)
-            .padding()
+            .padding(.bottom, 40)
             
             
             TextField("Enter NFC tag text", text: $textToWrite)
-                .frame(width: UIScreen.main.bounds.width - 32, height: 300, alignment: .center)
+                .frame(height:300)
+                .padding(.horizontal)
                 .multilineTextAlignment(.leading)
                 .overlay {
                     textFieldBorder
@@ -59,7 +60,7 @@ struct ContentView: View {
                     .padding()
             }
 //            .padding(EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16))
-            .frame(width: UIScreen.main.bounds.width - 32, height: 60, alignment: .center)
+            .frame(minWidth: 0, maxWidth: .infinity)
         
             .background(Color.green)
             .cornerRadius(30)
@@ -68,7 +69,13 @@ struct ContentView: View {
             
         }
         .padding()
-        
+        .toolbar {
+            ToolbarItem(placement: .keyboard) {
+                Button("Done") {
+                    inputIsFocused = false
+                }
+            }
+        }
     }
     
     var textFieldBorder: some View {
